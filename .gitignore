@@ -1,0 +1,13 @@
+# python build
+/mix.py.egg-info
+/.tox
+/build
+/dist
+
+# compilation artefacts
+*.so
+*.o
+
+# development left-overs
+/compile_commands.json
+/.gdb_history
