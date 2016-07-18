@@ -1,7 +1,7 @@
 // vim: set sts=4 sw=4 ts=4 et:
 
 // Python.h includes pyconfig.h that unconditionally defines the
-// _POSIX_C_SOURCE and other constants, since the extension is compile with
+// _POSIX_C_SOURCE and other constants, since the extension is compiled with
 // -Werror the compilation fail if Python.h is included after any system level
 // header
 #include <Python.h>
@@ -16,8 +16,7 @@ namespace ctx = boost::context;
 /**
  * This is a implementation of cooperatively scheduled M:1 fibers for python,
  * the motivation for this project is to have the equivalent semantics as
- * greenlets but with no copying of the stack data and an implementation that
- * does not have assumptions about the stack.
+ * greenlets but with no copying of the stack data.
  *
  * The initial ideia was to use UNIX's makecontext() family of functions, this
  * idea was dropped because the signal mask requires SYSCALLs to update the
@@ -34,8 +33,8 @@ namespace ctx = boost::context;
 /**
  * Some notes:
  *
- * mix does not keep track of a hierarchy of executaiton the same way that
- * greenlet does, this logic should be emulated in python.
+ * mix does not keep track of a hierarchy of execution like the greenlet
+ * library, this logic should be emulated in python.
  *
  * Currently there is no support for spagetthi/segmented stacks.
  *
@@ -129,9 +128,27 @@ struct Fiber
  **/
 void first_call(intptr_t arguments_ptr) {
     callback_t *callback;
+    PyObject* fiber;
 
     callback = (callback_t*)arguments_ptr;
-    PyObject_Call(callback->callback, callback->args, callback->kwds);
+
+    // PyObject_Call call will create a new frame object that will keep the
+    // variables alive, we don't need to increase the refcount
+    fiber = PyObject_Call(callback->callback, callback->args, callback->kwds);
+    // If we get here either the function returned or a exception was raised
+    // and not handled
+
+    // The fiber needs to exit to guarantee proper cleanup, otherwise callback
+    // could have references and keep objects alive.
+    if (fiber) {
+        // TODO: check the type of fiber and switch context
+    }
+
+    // Unlike greenlet we don't keep in the compiled code a chain of parent and
+    // child threads of execution, that means we don't have another stack to
+    // switch to and continue running, also we cannot raise an exception
+    // SystemExit exception because there is no stack to unwind, so just
+    // finalize the running interpreter.
 
 #if PY_MAJOR_VERSION >= 3
     PyObject *pystdout, *pystderr;
@@ -156,18 +173,25 @@ void first_call(intptr_t arguments_ptr) {
     _PyObject_CallMethodId(pystdout, &PyId_flush, "");
 #endif
 
-    printf("mix: Fiber got to the end of stack\n");
+    // XXX: calling exit() is probably wrong for python embedded
+    // let the user know why we are exiting
+    // if (result == NULL) {
+    if (PyErr_Occurred() != NULL) {
+        // PyObject *exc, *val, *tb;
+        // PyErr_Fetch(&exc, &val, &tb);
+        // PyErr_NormalizeException(&exc, &val, &c_tb);
+        PyErr_Print();
 
-    // At this point we cannot raise an SystemExit exception because there is
-    // no stack to unwind, so just finalize the running interpreter.
-    //
-    // XXX: this is probably wrong for python embedded
-    Py_Finalize();
-    std::exit(1);
+        // Calling Py_Finalize here will segfault
+        fprintf(stderr, "mix: Fiber got to the end of stack\n");
+        std::exit(2);
+    } else {
+        Py_Finalize();
+        fprintf(stderr, "mix: Fiber got to the end of stack\n");
+        std::exit(1);
+    }
 
-    // Unlike greenlet we don't keep in the compiled code a chain of parent and
-    // child threads of execution, that means we don't have another stack to
-    // continue running and beyond this point we will segfault.
+    // beyond this point the application will segfault
 }
 
 /**
@@ -279,7 +303,7 @@ py::object py_context_switch(Fiber* origin, Fiber *target) {
     return py_context_switch_args_kwds(origin, target, py::tuple(), py::dict());
 }
 
-BOOST_PYTHON_MODULE(mix)
+BOOST_PYTHON_MODULE(fiber)
 {
     using namespace boost::python;
 

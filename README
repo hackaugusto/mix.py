@@ -1,0 +1,25 @@
+mix.py
+------
+
+mix.py is a coroutine library. Coroutines might also be called Fibers
+(Windows), Green Threads (Java), or Lightweight Threads.
+
+vs. Greenlet
+--------
+
+The main difference between mix.py and greenlet is the stack handling, while
+greenlet relies heavily on the use of copying to exchange stacks mix.py uses a
+fixed size stack.
+
+That said, greenlet has the advantage that it's stacks can grow, while mix.py
+cannot (at least not without spagetthi stacks, and that is not tested for the
+moment), and mix.py sacrifices that benefit for the improved performance of
+_not_ copying stacks to and from the heap.
+
+compiling
+---------
+
+mix.py is coded in C++ with boost, it requires a least a C++11 compatible
+compiler and boost 1.60.0, and obviously Python's headers are required.
+
+Use the package setup.py to compile the package with `python setup.py bdist`

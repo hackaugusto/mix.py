@@ -7,18 +7,22 @@ from collections import OrderedDict
 
 import mix
 
+
 def sorted_dict(kwds):
     result = OrderedDict()
     for key in sorted(kwds.keys()):
         result[key] = kwds[key]
     return result
 
+
 def noop():
     pass
+
 
 def args(*args, **kwargs):
     print(args, sorted_dict(kwargs))
     mix.context_switch(fiber, main)
+
 
 main = mix.Fiber(noop)
 fiber = mix.Fiber(args)

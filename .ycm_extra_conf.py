@@ -21,8 +21,8 @@ if not os.path.exists(ROOT_DATABASE):
     # translate the call to c++ instead o cc and youcompleteme add -x c++
     # instead of -x c
     env = {'CC': 'clang++'}
-
     build = subprocess.Popen(['bear', 'python3', 'setup.py', 'build'], env=env)
+
     build.wait()
     shutil.rmtree(os.path.join(ROOT_DIR, 'build'))
 

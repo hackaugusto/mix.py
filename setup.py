@@ -33,10 +33,10 @@ LINKS_FLAGS = [
     '-Wl,-O1,--sort-common,--as-needed,-z,relro,--export-dynamic',
 ]
 
-
 mix_extension = Extension(
-    name='mix',
-    sources=['mix.cpp'],
+    name='fiber',
+    sources=['mix/fiber.cpp'],
+    language='c++',
     include_dirs=INCLUDE_DIRS,
     library_dirs=LIBRARIES_DIRS,
     libraries=LIBRARIES,
@@ -49,5 +49,6 @@ if __name__ == '__main__':
     setup(
         name='mix.py',
         version='0.0.1',
+        packages=find_packages(),
         ext_modules=[mix_extension],
     )

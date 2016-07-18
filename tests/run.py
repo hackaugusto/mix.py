@@ -37,6 +37,14 @@ test5_output = [
     b'third',
 ]
 
+test8_output = [
+    b'Traceback (most recent call last):',
+    re.compile('^File "[^"]+", line \d+, in exception$'),
+    b'raise Exception()',
+    b'Exception',
+    b'mix: Fiber got to the end of stack',
+]
+
 testargs1_output = [
     b'() {}',
 ]
@@ -106,6 +114,8 @@ RESULTS = [
     ('test4.py', test4_output, 1),
     ('test5.py', test5_output, 0),
     ('test6.py', [], 0),
+    ('test7.py', [], 1),
+    ('test8.py', test8_output, 2),
 
     ('test_args1.py', testargs1_output, 0),
     ('test_args2.py', testargs2_output, 0),
@@ -123,6 +133,9 @@ RESULTS = [
     ('test_return4.py', testreturn4_output, 0),
     ('test_return5.py', testreturn5_output, 0),
     ('test_return6.py', testreturn6_output, 0),
+
+    ('test_refcount1.py', '', 0),
+    ('test_refcount2.py', [], 0),
 ]
 
 
@@ -190,7 +203,7 @@ RETURNCODE_SIGNAL = {
 if __name__ == '__main__':
     DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
-    for test_script, excpected_output, expected_returncode in RESULTS:
+    for test_script, expected_output, expected_returncode in RESULTS:
         try:
             output = subprocess.check_output(os.path.join(DIRECTORY, test_script), stderr=subprocess.STDOUT, shell=True, close_fds=True)
             returncode = 0
@@ -198,19 +211,19 @@ if __name__ == '__main__':
             output = e.output
             returncode = e.returncode
 
-        returncode_msg = 'test {} returned wrong code, got: {}, excpected: {}.\nfull output:\n{}'.format(
+        returncode_msg = 'test {} returned wrong code, got: {}, expected: {}.\nfull output:\n{}'.format(
             test_script,
             RETURNCODE_SIGNAL.get(abs(returncode), returncode),
             expected_returncode,
-            output,
+            output.decode('utf8'),
         )
 
         assert returncode == expected_returncode, returncode_msg
 
-        error = match_output(output, excpected_output)
+        error = match_output(output, expected_output)
         assert not error, 'test {} failed with wrong output: given "{}", excpected "{}".\nfull output:\n{}'.format(
             test_script,
             error[0],
             error[1],
-            output,
+            output.decode('utf8'),
         )
